@@ -1,0 +1,489 @@
+<lccdd xmlns:compact="http://www.lcsim.org/schemas/compact/1.0" 
+       xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+       xs:noNamespaceSchemaLocation="http://www.lcsim.org/schemas/compact/1.0/compact.xsd">
+
+  <info name="JLAB" title="JLAB EIC Simple"
+        author="Sereres Johnston"
+        url="https://twiki.cern.ch/twiki/bin/view/CLIC/ClicSidCdr"
+        status="development"
+        version="$Id: compact.xml v1.0 2016-12-21$">
+    <comment>The simple version of the JLAB EIC Detector</comment>        
+  </info>
+
+  <includes>
+    <gdmlFile  ref="elements.xml"/>
+    <gdmlFile  ref="materials.xml"/>
+  </includes>
+  
+  <define>
+    <constant name="world_side" value="30000*mm"/>
+    <constant name="world_x" value="world_side"/>
+    <constant name="world_y" value="world_side"/>
+    <constant name="world_z" value="world_side"/>
+    
+    <constant name="CrossingAngle" value="0.020*rad"/>
+    
+    <constant name="CaloSides" value="12"/>
+    <constant name="MuonSides" value="8"/>
+    
+    <constant name="EcalBarrel_ID" value="6"/>
+    <constant name="EcalBarrel_rmin" value="135.0*cm"/>
+    <constant name="EcalBarrel_zmax" value="282.50*cm"/>
+
+    <constant name="EcalEndcap_ID" value="7"/>
+    <constant name="EcalEndcap_rmin" value="21.0*cm"/>
+    <!-- Correction from going from inner circle to outer circle -->
+    <constant name="EcalEndcap_rmax" value="(EcalBarrel_rmin - 1.5*cm) / (cos(pi/CaloSides))"/> 
+    <constant name="EcalEndcap_zmin" value="265.70*cm"/>
+    
+    <constant name="HcalBarrel_ID" value="8"/>
+    <constant name="HcalBarrel_rmin" value="141.90*cm"/>
+    <constant name="HcalBarrel_layers" value="(int) 75"/>
+    <constant name="HcalBarrel_layer_thickness" value="1.0*cm + 0.65*cm"/>
+
+    <constant name="HcalEndcap_ID" value="9"/>
+    <constant name="HcalEndcap_zmin" value="EcalBarrel_zmax + 4.0*cm"/> <!-- Gap for cables -->
+    <constant name="HcalEndcap_rmin" value="50.0*cm"/>
+    <!-- Correction from going from inner circle to outer circle -->
+    <constant name="HcalEndcap_rmax" value="(HcalBarrel_rmin + HcalBarrel_layers * HcalBarrel_layer_thickness) / (cos(pi/CaloSides))"/>
+    <constant name="HcalEndcap_layers" value="60"/>
+    <constant name="HcalEndcap_layer_thickness" value="2.0*cm + 0.65*cm"/>
+    <constant name="HcalEndcap_zmax" value="HcalEndcap_zmin + HcalEndcap_layers * HcalEndcap_layer_thickness"/>
+
+    <constant name="HcalPlug_ID" value="10"/>
+
+    
+    <constant name="tracking_region_radius" value="EcalBarrel_rmin - 1.0*mm"/>
+    <constant name="tracking_region_zmax" value="EcalEndcap_zmin - 1.0*mm"/>
+    <constant name="VXD_CF_sensor" value="0.026*cm"/>
+    <constant name="VXD_CF_support" value="0.05*cm"/>
+    
+    <constant name="SolenoidBarrelInnerRadius" value="1000*cm"/>
+    <constant name="SolenoidCoilOuterZ" value="300*cm"/>
+    <constant name="SolenoidBarrelInnerCryostatThickness" value="5.0*cm"/>
+    <constant name="SolenoidBarrelInnerAirgapThickness" value="17.5*cm"/>
+    <constant name="SolenoidBarrelAlConductorThickness" value="40.0*cm"/>
+    <constant name="SolenoidBarrelQuenchbackThickness" value="3.0*cm"/>
+    <constant name="SolenoidBarrelOuterAirgapThickness" value="20.0*cm"/>
+    <constant name="SolenoidBarrelOuterCryostatThickness" value="4.0*cm"/>
+    <constant name="SolenoidEndcapCryostatThickness" value="6.0*cm"/>
+    <constant name="SolenoidEndcapAirgapThickness" value="12.0*cm"/>
+    <constant name="SolenoidBarrelOuterZ" value="SolenoidCoilOuterZ+SolenoidEndcapAirgapThickness"/>
+    <constant name="SolenoidBarrelConductorInnerRadius" value="SolenoidBarrelInnerRadius + SolenoidBarrelInnerCryostatThickness + SolenoidBarrelInnerAirgapThickness"/>
+    <constant name="SolenoidBarrelOuterCryostatInnerRadius" value="SolenoidBarrelConductorInnerRadius + SolenoidBarrelAlConductorThickness + SolenoidBarrelQuenchbackThickness"/>
+    <constant name="SolenoidBarrelOuterRadius" value="SolenoidBarrelOuterCryostatInnerRadius + SolenoidBarrelOuterAirgapThickness + SolenoidBarrelOuterCryostatThickness"/>
+    <constant name="SolenoidalFieldRadius" value="(SolenoidBarrelConductorInnerRadius + SolenoidBarrelAlConductorThickness / 2.0)"/>
+    
+
+    <constant name="MuonBarrel_ID" value="11"/>
+    <constant name="MuonBarrel_rmin" value="SolenoidBarrelOuterRadius + 1.0*cm"/>
+    <constant name="MuonBarrel_zmax" value="SolenoidBarrelOuterZ + SolenoidEndcapCryostatThickness"/>
+    <constant name="MuonBarrel_layers" value="15"/>
+    <constant name="MuonBarrel_layer_thickness" value="10.0*cm + 4.0*cm"/>
+
+    <constant name="MuonEndcap_ID" value="12"/>
+    <constant name="MuonEndcap_zmin" value="MuonBarrel_zmax + 10.0*cm"/> <!-- Space for cables etc. -->
+    <constant name="MuonEndcap_rmin" value="69.0*cm"/> <!-- Space for QD0 and anti-solenoid-->
+    <!-- Correction from going from inner circle to outer circle -->
+    <constant name="MuonEndcap_rmax" value="(MuonBarrel_rmin + 57.0*cm + MuonBarrel_layers*MuonBarrel_layer_thickness) / (cos(pi/MuonSides))"/> 
+    <constant name="MuonEndcap_layers" value="18"/>
+    <constant name="MuonEndcap_layer_thickness" value="10.0*cm + 4.0*cm"/>
+    <constant name="MuonEndcap_zmax" value="MuonEndcap_zmin + MuonEndcap_layers * MuonEndcap_layer_thickness"/>
+    
+    <constant name="LumiCal_rmin" value="6.4*cm"/>
+    <constant name="LumiCal_rmax" value="EcalEndcap_rmin + 3.0*cm"/>
+    <constant name="LumiCal_zmin" value="HcalEndcap_zmin"/>
+    <constant name="LumiCal_thickness" value="20*0.371*cm + 15*0.643*cm"/>
+    <constant name="LumiCal_zmax" value="LumiCal_zmin + LumiCal_thickness"/>
+    <constant name="LumiCalElectronics_rmax" value="LumiCal_rmax+5.0*cm"/>
+    
+    <constant name="SupportTube_thickness" value="1.0*cm"/>
+    <constant name="ForwardVacuumValve_thickness" value="36.0*cm"/>
+    <constant name="ForwardShielding_thickness" value="5.0*cm"/>
+    <constant name="ForwardMask_thickness" value="10.0*cm"/>
+    <constant name="ForwardMask_zmin" value="LumiCal_zmax + ForwardShielding_thickness + ForwardVacuumValve_thickness"/>
+    
+    <constant name="VertexSupport_r1" value="16.87*cm"/>
+    <constant name="VertexSupport_r2" value="18.42*cm"/>
+    <constant name="VertexSupport_zmax" value="240.48*cm"/>
+    
+
+    <constant name="VertexBarrel_ID" value="1"/>
+    <constant name="VertexBarrel_zmax" value="240.0*cm"/>
+    <constant name="VertexBarrel_r1" value="2.7*cm"/>
+    <constant name="VertexBarrel_r2" value="3.8*cm"/>
+    <constant name="VertexBarrel_r3" value="5.1*cm"/>
+    <constant name="VertexBarrel_r4" value="6.4*cm"/>
+    <constant name="VertexBarrel_r5" value="7.7*cm"/>
+
+    
+    <constant name="CentralBeamPipe_zmax" value="23.0*cm"/>
+    <constant name="CentralBeamPipe_rmax" value="VertexBarrel_r1 - 0.2*cm"/>
+    <constant name="CentralBeamPipe_thickness" value="CentralBeamPipe_rmax * 0.02"/> <!-- 1% of the diameter -->
+    <constant name="CentralBeamPipe_rmin" value="CentralBeamPipe_rmax - CentralBeamPipe_thickness"/>
+    <constant name="BeamPipe_thickness" value="0.4*cm"/>
+    <constant name="BeamPipe_endThickness" value="0.1*cm"/>
+    <constant name="BeamPipe_zmax" value="LumiCal_zmin - 0.5*cm"/>
+    <constant name="BeamPipe_rmax" value="19.0*cm"/>
+    <constant name="BeamPipe_rmin" value="BeamPipe_rmax - BeamPipe_thickness"/>
+    <constant name="bp_cone_slope" value="(BeamPipe_rmax-CentralBeamPipe_rmax)/(tracking_region_zmax-CentralBeamPipe_zmax)"/>
+    <constant name="BeamPipe_zmin" value="CentralBeamPipe_zmax + (BeamPipe_thickness - CentralBeamPipe_thickness)/bp_cone_slope"/>
+    <constant name="BeamPipeLiner_thickness" value="0.0*cm"/>
+
+    <constant name="VertexEndcap_ID" value="2"/>
+    <constant name="VertexEndcap_rmax" value="11.5*cm"/>
+    <constant name="VertexEndcap_z1" value="12.0*cm"/>
+    <constant name="VertexEndcap_z2" value="16.0*cm"/>
+    <constant name="VertexEndcap_z3" value="20.0*cm"/>
+    <constant name="VertexEndcap_z4" value="24.0*cm"/>
+    <constant name="VertexEndcap_offset" value="0.2*cm"/>
+    <constant name="VertexEndcapModules" value="16"/>
+    <constant name="VertexEndcap_rmin1" value="CentralBeamPipe_rmax + VertexEndcap_offset"/>
+    <constant name="VertexEndcap_rmin2" value="CentralBeamPipe_rmax + VertexEndcap_offset"/>
+    <constant name="VertexEndcap_rmin3" value="CentralBeamPipe_rmax + VertexEndcap_offset"/>
+    <constant name="VertexEndcap_rmin4" value="(VertexEndcap_z4 - CentralBeamPipe_zmax)*bp_cone_slope + CentralBeamPipe_rmax + VertexEndcap_offset"/>
+    
+    <constant name="SiTrackerBarrel_ID" value="3"/>
+    <constant name="SiTrackerEndcap_ID" value="4"/>
+
+    <constant name="ForwardTracker_ID" value="5"/>
+    <constant name="ForwardTrackerModules" value="16"/>
+    <constant name="ForwardTracker_rmax" value="16.87*cm"/>
+    <constant name="ForwardTracker_z1" value="28.0*cm"/>
+    <constant name="ForwardTracker_z2" value="50.0*cm"/>
+    <constant name="ForwardTracker_z3" value="83.0*cm"/>
+    <constant name="ForwardTracker_offset" value="0.2*cm"/>
+    <constant name="ForwardTracker_rmin1" value="(ForwardTracker_z1 - CentralBeamPipe_zmax)*bp_cone_slope + CentralBeamPipe_rmax + ForwardTracker_offset"/>
+    <constant name="ForwardTracker_rmin2" value="(ForwardTracker_z2 - CentralBeamPipe_zmax)*bp_cone_slope + CentralBeamPipe_rmax + ForwardTracker_offset"/>
+    <constant name="ForwardTracker_rmin3" value="(ForwardTracker_z3 - CentralBeamPipe_zmax)*bp_cone_slope + CentralBeamPipe_rmax + ForwardTracker_offset"/>
+    
+    <constant name="VertexService_zmin" value="ForwardTracker_z1 + 1.0*cm"/>
+    <constant name="VertexService_zmax" value="VertexService_zmin + 2.0*cm"/>
+    <constant name="VertexServiceThickness" value="0.3*cm"/>
+    <constant name="VertexCableThickness" value="0.005*cm"/>
+
+    <constant name="BeamCal_rmax" value="13.0*cm"/>
+    <constant name="BeamCal_zmin" value="ForwardMask_zmin + ForwardMask_thickness"/>
+
+    <constant name="IncomingBP_radius" value="0.25*cm"/>
+    <constant name="IncomingBP_thickness" value="0.05*cm"/>
+    <constant name="OutgoingBP_radius" value="tan(CrossingAngle/2/rad)*BeamCal_zmin"/>
+    <constant name="OutgoingBP_thickness" value="0.1*cm"/>    
+
+    <constant name="BeamCal_crossingAngle" value="CrossingAngle"/>    
+    <constant name="BeamCal_outgoing_r" value="OutgoingBP_radius + 0.05*cm"/>    
+    <constant name="BeamCal_incoming_r" value="IncomingBP_radius + 0.05*cm"/>    
+
+    <constant name="Place_Center" value="0*cm"/>
+  </define>
+
+
+  <limits>
+    <limitset name="cal_limits">
+      <limit name="step_length_max" particles="*" value="5.0" unit="mm" />
+    </limitset>
+    <limitset name="SiTrackerBarrelRegionLimitSet">
+      <limit name="step_length_max" particles="*" value="5.0" unit="mm" />
+      <limit name="track_length_max" particles="*" value="5.0" unit="mm" />
+      <limit name="time_max" particles="*" value="5.0" unit="ns" />
+      <limit name="ekin_min" particles="*" value="0.01" unit="MeV" />
+      <limit name="range_min" particles="*" value="5.0" unit="mm" />
+    </limitset>
+  </limits>
+  <regions>
+    <region name="SiTrackerBarrelRegion" eunit="MeV" lunit="mm" cut="0.001" threshold="0.001">
+      <limitsetref name="SiTrackerBarrelRegionLimitSet"/>
+    </region>
+  </regions>
+
+
+  <comment>Common Generic visualization attributes</comment>
+  <display>
+    <vis name="InvisibleNoDaughters"      showDaughters="false" visible="false"/>
+    <vis name="InvisibleWithDaughters"    showDaughters="true" visible="false"/>
+    <vis name="GreenVis"       alpha="0.5"  r= "0.0" g="1.0" b="0.0" showDaughters="true" visible="true"/>
+    <vis name="RedVis"         alpha="0.5"  r= "1.0" g="0.0" b="0.0" showDaughters="true" visible="true"/>
+    <vis name="BlueVis"        alpha="0.5"  r= "0.0" g="0.0" b="1.0" showDaughters="true" visible="true"/>
+    <vis name="OrangeVis"      alpha="0.5"  r= "1.0" g="0.45" b="0.0" showDaughters="true" visible="true"/>
+    <vis name="RedGreenVis"    alpha="0.5"  r= "1.0" g="1.0" b="0.0" showDaughters="true" visible="true"/>
+    <vis name="BlueGreenVis"   alpha="0.5"  r= "0.0" g="1.0" b="1.0" showDaughters="true" visible="true"/>
+    <vis name="PurpleVis"      alpha="0.5"  r= "1.0" g="0.0" b="1.0" showDaughters="true" visible="true"/>
+    <vis name="DoubleRedG"     alpha="0.5"  r= "2.0" g=".10" b="0.0" showDaughters="true" visible="true"/>
+    <vis name="RBG015"         alpha="0.5"  r= "0.0" g=".2"  b="1.0" showDaughters="true" visible="true"/>
+    <vis name="RBG510"         alpha="0.5"  r= "1.0" g=".2"  b="0.0" showDaughters="true" visible="true"/>
+    <vis name="RBG"            alpha="0.5"  r= "1.0" g="1.0" b="1.0" showDaughters="true" visible="true"/>
+    <vis name="GrayVis"        alpha="0.5"  r= "0.75" g="0.75" b="0.75" showDaughters="true" visible="true"/>
+  </display>
+  <!--  Definition of the used visualization attributes    -->
+  <display>
+    <vis name="SiVertexModuleVis"    alpha="1.0" r="1" g="1"    b="0.6" drawingStyle="wireframe" showDaughters="true"  visible="true"/>
+    <!--vis name="SiVertexModuleVis"    alpha="1.0" r="1" g=".75"    b="0"  showDaughters="true"  visible="true"/-->
+    <vis name="SiVertexSensitiveVis" alpha="1.0" r="1" g="0.2"  b="0.2" drawingStyle="solid"     showDaughters="true"  visible="true"/>
+    <vis name="SiVertexPassiveVis"   alpha="1.0" r="0" g="0.2"  b="1"   drawingStyle="solid"     showDaughters="true"  visible="true"/>
+    <vis name="SiVertexLayerVis"     alpha="1.0" r="1" g="0.75" b="0"   drawingStyle="solid"     showDaughters="true" visible="true"/>
+    <!--vis name="SiVertexLayerVis"     alpha=".10" r="0" g="1" b=".60" drawingStyle="wireframe"  showDaughters="true" visible="false"/-->
+
+  </display>
+
+
+  <comment>Additional design specific material definitions</comment>
+  <!--<include ref="SiD/SiD_Materials.xml"/>-->
+
+  <detectors>
+    <comment>Tracking detectors</comment>
+    <!--<include ref="JLAB/JLEIC_Vertex.xml"/>-->
+    <!--include ref="JLAB/JLAB_Tracker.xml"/-->
+
+    <comment>Calorimeters</comment>
+    <!--include ref="JLAB/JLAB_EMcal.xml"/-->
+    <!--include ref="SiD/SiD_Hcal.xml"/>
+    <include ref="SiD/SiD_HcalPlug.xml"/>
+    <include ref="SiD/SiD_Muon.xml"/>
+    <include ref="SiD/SiD_Lumical.xml"/>
+    <include ref="SiD/SiD_Beamcal.xml"/>
+
+    <comment>Beampipe</comment>
+    <include ref="SiD/SiD_Beampipe.xml"/>
+
+    <comment>Dead material, supports and magnet</comment>
+    <include ref="SiD/SiD_Shields.xml"/
+    <include ref="JLAB/JLEIC_Solenoid.xml"/-->
+
+
+    <detector name = "Solenoid" type="GenericShapeJLEIC" vis="PurpleVis" >
+      <layer id="8" inner_r="150.0*cm" outer_z="160.0*cm" z_offset="Place_Center" >
+        <slice material="Iron" thickness="10*cm" >
+        </slice>
+      </layer>
+      <!--layer id="9" inner_r="231.0*cm" outer_z="400.0*cm">
+        <slice material="Iron" thickness="6"/>
+      </layer-->
+    </detector>
+
+    <!--comment> gemc svn has these dimensions </comment>
+    <detector name = "TrackerBarrel" type="GenericShapeJLEIC" vis="BlueVis" >
+      <layer id="20" inner_r="40*cm" outer_z="90*cm" >
+        <slice material="Vacuum" thickness="1*cm"/>
+      </layer>
+      <layer id="21" inner_r="60*cm" outer_z="90*cm" >
+        <slice material="Vacuum" thickness="1*cm"/>
+      </layer>
+      <layer id="22" inner_r="75*cm" outer_z="90*cm" >
+        <slice material="Vacuum" thickness="11*cm"/>
+      </layer>
+      <layer id="23" inner_r="98*cm" outer_z="90*cm" >
+        <slice material="Vacuum" thickness="1*cm"/>
+      </layer>
+    </detector-->
+  <!--detector id="88" name="SiTrackerEndcap" type="DD4hep_SiTrackerEndcap2" readout="SiTrackerEndcapHits" reflect="true">
+    <comment>Silicon Outer Tracker Endcaps</comment>
+    <module name="Module1" vis="RedVis">
+      <trd x1="36.112*mm" x2="46.635*mm" z="100.114/2*mm" />
+      <module_component thickness="0.00052*cm"   material="Copper" />
+      <module_component thickness="0.0051*cm"   material="Kapton" />
+      <module_component thickness="0.00048*cm" material="Silicon" />
+      <module_component thickness="0.03*cm"   material="Silicon" sensitive="true" />
+      <module_component thickness="0.016*cm" material="CarbonFiber_50D" />
+      <module_component thickness="0.18*cm" material="Rohacell31_50D" />
+      <module_component thickness="0.016*cm" material="CarbonFiber_50D" />
+      <module_component thickness="0.0175*cm" material="Epoxy" />
+      <module_component thickness="0.03*cm"   material="Silicon" sensitive="true" />
+      <module_component thickness="0.00048*cm" material="Silicon" />
+      <module_component thickness="0.0051*cm"   material="Kapton" />
+      <module_component thickness="0.00052*cm"   material="Copper" />
+    </module> 
+    <module name="Module2" vis="RedVis">
+      <trd x1="45.245*mm" x2="54.680*mm" z="89.773/2*mm" />
+      <module_component thickness="0.00079*cm"   material="Copper" />
+      <module_component thickness="0.0078*cm"   material="Kapton" />
+      <module_component thickness="0.00048*cm" material="Silicon" />
+      <module_component thickness="0.03*cm"   material="Silicon" sensitive="true" />
+      <module_component thickness="0.016*cm" material="CarbonFiber_50D" />
+      <module_component thickness="0.18*cm" material="Rohacell31_50D" />
+      <module_component thickness="0.016*cm" material="CarbonFiber_50D" />
+      <module_component thickness="0.0175*cm" material="Epoxy" />
+      <module_component thickness="0.03*cm"   material="Silicon" sensitive="true" />
+      <module_component thickness="0.00048*cm" material="Silicon" />
+      <module_component thickness="0.0078*cm"   material="Kapton" />
+      <module_component thickness="0.00079*cm"   material="Copper" />
+    </module>
+    <layer id="1">
+      <ring r="256.716*mm" zstart="(787.105+1.75)*mm" nmodules="24" dz="1.75*mm" module="Module1"/>
+      <ring r="353.991*mm" zstart="(778.776+1.75)*mm" nmodules="32" dz="1.75*mm" module="Module1"/>
+      <ring r="449.180*mm" zstart="(770.544+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module1"/>
+    </layer-->
+    <!--
+    <layer id="2">
+      <ring r="256.716*mm" zstart="(1073.293+1.75)*mm" nmodules="24" dz="1.75*mm" module="Module1"/>
+      <ring r="353.991*mm" zstart="(1064.966+1.75)*mm" nmodules="32" dz="1.75*mm" module="Module1"/>
+      <ring r="449.180*mm" zstart="(1056.734+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module1"/>
+      <ring r="538.520*mm" zstart="(1048.466+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module2"/>
+      <ring r="625.654*mm" zstart="(1041.067+1.75)*mm" nmodules="48" dz="1.75*mm" module="Module2"/>
+      <ring r="703.666*mm" zstart="(1033.725+1.75)*mm" nmodules="54" dz="1.75*mm" module="Module2" phi0="pi/54"/>
+    </layer>
+    <layer id="3">
+      <ring r="256.716*mm" zstart="(1353.786+1.75)*mm" nmodules="24" dz="1.75*mm" module="Module1"/>
+      <ring r="353.991*mm" zstart="(1345.457+1.75)*mm" nmodules="32" dz="1.75*mm" module="Module1"/>
+      <ring r="449.180*mm" zstart="(1337.225+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module1"/>
+      <ring r="538.520*mm" zstart="(1328.957+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module2"/>
+      <ring r="625.654*mm" zstart="(1321.558+1.75)*mm" nmodules="48" dz="1.75*mm" module="Module2"/>
+      <ring r="703.666*mm" zstart="(1314.217+1.75)*mm" nmodules="54" dz="1.75*mm" module="Module2" phi0="pi/54"/>
+      <ring r="793.448*mm" zstart="(1306.828+1.75)*mm" nmodules="58" dz="1.75*mm" module="Module2" phi0="pi/58"/>
+      <ring r="874.239*mm" zstart="(1299.486+1.75)*mm" nmodules="64" dz="1.75*mm" module="Module2"/>
+      <ring r="958.364*mm" zstart="(1292.189+1.75)*mm" nmodules="68" dz="1.75*mm" module="Module2"/>
+    </layer>
+    <layer id="4">
+      <ring r="256.716*mm" zstart="(1639.164+1.75)*mm" nmodules="24" dz="1.75*mm" module="Module1"/>
+      <ring r="353.991*mm" zstart="(1630.835+1.75)*mm" nmodules="32" dz="1.75*mm" module="Module1"/>
+      <ring r="449.180*mm" zstart="(1622.603+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module1"/>
+      <ring r="538.520*mm" zstart="(1614.335+1.75)*mm" nmodules="40" dz="1.75*mm" module="Module2"/>
+      <ring r="625.654*mm" zstart="(1606.936+1.75)*mm" nmodules="48" dz="1.75*mm" module="Module2"/>
+      <ring r="703.666*mm" zstart="(1599.595+1.75)*mm" nmodules="54" dz="1.75*mm" module="Module2" phi0="pi/54"/>
+      <ring r="793.448*mm" zstart="(1592.206+1.75)*mm" nmodules="58" dz="1.75*mm" module="Module2" phi0="pi/58"/>
+      <ring r="874.239*mm" zstart="(1584.864+1.75)*mm" nmodules="64" dz="1.75*mm" module="Module2"/>
+      <ring r="958.364*mm" zstart="(1577.567+1.75)*mm" nmodules="68" dz="1.75*mm" module="Module2"/>
+      <ring r="1040.970*mm" zstart="(1570.222+1.75)*mm" nmodules="72" dz="1.75*mm" module="Module2"/>
+      <ring r="1124.167*mm" zstart="(1562.916+1.75)*mm" nmodules="78" dz="1.75*mm" module="Module2" phi0="pi/78"/>
+      <ring r="1206.937*mm" zstart="(1555.647+1.75)*mm" nmodules="84" dz="1.75*mm" module="Module2"/>
+    </layer>
+-->
+  <!--/detector-->
+
+    <detector id="0" name="SiVertexBarrel" vis="RedVis"
+      type="SiTrackerBarrelJLEIC" readout="SiVertexBarrelHits" 
+      inner_r="3.85*cm" insideTrackingVolume="true">
+    </detector>
+
+
+    <detector id="300" name="SiTrackerBarrel" vis="PurpleVis"
+      type="GenericTrackerBarrelJLEIC" readout="SiTrackerBarrelHits" 
+      inner_r="40*cm" insideTrackingVolume="true">
+      <layer id="30" nModules="20" nz="32"/>
+      <layer id="31" nModules="30" nz="44"/>
+      <layer id="32" nModules="40" nz="53"/>
+      <layer id="33" nModules="50" nz="60"/>
+    </detector>
+
+    <detector id="77" name="StandInVolumes" vis="GreenVis" type="StandInGeometryJLEIC" > 
+    </detector>
+
+    <detector name ="DIRC" type="GenericShapeJLEIC" vis="GreenVis" >
+      <layer id="2" inner_r="1.01*m" outer_z="200*cm" z_offset="Place_Center" >
+        <slice material="PyrexGlass" thickness="8.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+
+    <detector name ="TOF" type="GenericShapeJLEIC" vis="RedVis" >
+      <layer id="3" inner_r="1.1*m" outer_z="2.0*m" z_offset="Place_Center">
+        <slice material="PyrexGlass" thickness="4.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+
+    <detector name ="HBD_eleside" type="GenericShapeJLEIC" vis="RedGreenVis" >
+      <layer id="650" inner_r="7*cm" outer_z="14*cm" z_offset="Place_Center+1.8*m">
+        <slice material="PyrexGlass" thickness="90.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+
+    <!--detector name ="Rich_eleside" type="GenericShapeJLEIC" vis="OrangeVis" >
+      <layer id="55" inner_r="15*cm" outer_z="8.5*cm" z_offset="Place_Center+2.105*m">
+        <slice material="PyrexGlass" thickness="145.0*cm" >
+        </slice>
+      </layer>
+    </detector-->
+
+    <!--detector name ="TOF_eleside" type="GenericShapeJLEIC" vis="RedVis" >
+      <layer id="50" inner_r="15*cm" outer_z="2.5*cm" z_offset="Place_Center+2.24*m">
+        <slice material="PyrexGlass" thickness="155.0*cm" >
+        </slice>
+      </layer>
+    </detector-->
+
+    <detector name ="EMCAL" type="GenericShapeJLEIC" vis="RBG015" >
+      <layer id="4" inner_r="115*cm" outer_z="200*cm" z_offset="Place_Center+0.0*m">
+        <slice material="PyrexGlass" thickness="25.0*cm" >
+        </slice>
+      </layer>
+    </detector> 
+
+    <!--detector name ="EMCAL_eleside" type="GenericShapeJLEIC" vis="RBG015" >
+      <layer id="5" inner_r="5*cm" outer_z="12.5*cm" z_offset="Place_Center+2.4*m">
+        <slice material="PyrexGlass" thickness="145.0*cm" >
+        </slice>
+      </layer>
+    </detector-->
+   
+    <detector name ="EMCAL_ionside" type="GenericShapeJLEIC" vis="RBG015" >
+      <layer id="6" inner_r="30*cm" outer_z="15*cm" z_offset="Place_Center-3.9*m">
+        <slice material="PyrexGlass" thickness="200.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+    
+    <detector name ="HCAL_ionside" type="GenericShapeJLEIC" vis="PurpleVis" >
+      <layer id="7" inner_r="45*cm" outer_z="38*cm" z_offset="Place_Center-4.5*m">
+        <slice material="PyrexGlass" thickness="200.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+
+    <detector name ="DualRadiatorRICH" type="GenericShapeJLEIC" vis="BlueGreenVis" >
+      <layer id="7" inner_r="30*cm" outer_z="70*cm" z_offset="Place_Center-2.8*m">
+        <slice material="PyrexGlass" thickness="180.0*cm" >
+        </slice>
+      </layer>
+    </detector>
+
+
+  </detectors>
+
+  <!--  Definition of the readout segmentation/definition  -->
+  <readouts>
+    <readout name="SiVertexBarrelHits">
+      <id>system:8,barrel:3,layer:4,module:14,sensor:2,side:32:-2,strip:24</id>
+    </readout>
+    <readout name="SiTrackerBarrelHits">
+      <id>system:8,barrel:3,layer:4,module:14,sensor:2,side:32:-2,strip:24</id>
+    </readout>
+    <readout name="SiTrackerEndcapHits">
+      <id>system:8,barrel:3,layer:4,module:14,sensor:2,side:32:-2,strip:24</id>
+    </readout>
+    <readout name="SiVertexEndcapHits">
+      <id>system:8,barrel:3,layer:4,wedge:6,module:6,sensor:1,side:32:-2,strip:26</id>
+    </readout>
+  </readouts>
+
+  <plugins>
+    <plugin name="DD4hep_SiTrackerBarrelSurfacePlugin">
+      <argument value="SiVertexBarrel" />
+      <argument value="dimension=2" />
+    </plugin>
+
+    <!--
+    <plugin name="DD4hep_SiTrackerEndcapSurfacePlugin">
+      <argument value="SiVertexEndcap"/>
+      <argument value="dimension=1"/>
+    </plugin>
+    -->
+
+    <plugin name="DD4hep_SiTrackerBarrelSurfacePlugin">
+      <argument value="SiTrackerBarrel"/>
+      <argument value="dimension=2"/>
+    </plugin>
+    
+    <plugin name="DD4hepVolumeManager" />
+    <plugin name="InstallSurfaceManager" />
+  </plugins>
+
+  <fields>
+    <field name="GlobalSolenoid" type="solenoid" 
+      inner_field="4.0*tesla"
+      outer_field="-0.6*tesla" 
+      zmax="SolenoidCoilOuterZ"
+      outer_radius="SolenoidalFieldRadius">
+    </field>
+  </fields>
+</lccdd>

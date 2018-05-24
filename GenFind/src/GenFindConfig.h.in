@@ -1,0 +1,12 @@
+// the configured options and settings for Tutorial
+#define GenFind_MAJOR_VERSION @GenFind_MAJOR_VERSION@
+#define GenFind_MINOR_VERSION @GenFind_MINOR_VERSION@
+#define GenFind_PATCH_VERSION @GenFind_PATCH_VERSION@
+
+#define GenFind_DATA_DIR      "@GenFind_DATA_DIR@"
+#define GenFind_CXX_CFLAGS    "@GenFind_CXX_CFLAGS@"
+#define GenFind_CXX_LDFLAGS   "@GenFind_CXX_LDFLAGS@"
+#define GenFind_CXX_LIBS      "@GenFind_CXX_LIBS@"
+#define GenFind_CXX_INC_DIR   "@GenFind_CXX_INC_DIR@"
+#define GenFind_PREFIX        "@CMAKE_INSTALL_PREFIX@"
+

@@ -1,0 +1,260 @@
+void hough_transform2(
+    int i_event = 80,
+    int Ntracks = 2)
+{
+
+  gSystem->Load("libGenFind.so");
+  using namespace genfind;
+  using namespace ROOT::Math;
+
+  TFile * f = new TFile("simple_example_out.root","READ");
+  TTree * t = (TTree*)gROOT->FindObject("EVENT");
+  if(!t) { std::cout << " Tree not found " << std::endl; return;}
+  int nentries=t->GetEntries();
+
+  if(i_event+Ntracks>nentries){
+    std::cout << "Only " << nentries << " in file, this parameter set fails" << std::endl;
+    return;
+  }
+
+  std::vector<DD4hep::Simulation::Geant4Tracker::Hit*> * g4hits = nullptr;
+  std::vector<DD4hep::Simulation::Geant4Tracker::Hit*> * g4hits2 = nullptr;
+  t->SetBranchAddress("SiVertexBarrelHits", &g4hits);
+  t->SetBranchAddress("SiTrackerBarrelHits", &g4hits2);
+
+  HoughTransform* ht = new HoughTransform();
+
+  TH2F * hxy   = new TH2F("hxy",   "hxy",   100, -200, 200, 100, -200, 200);
+  TH2F * hxz   = new TH2F("hxz",   "hxz",   100, -1000, 1000, 100, -1000, 1000);
+  TH2F * hyz   = new TH2F("hyz",   "hyz",   100, -1000, 1000, 100, -1000, 1000);
+  TH2F * hxy2  = new TH2F("hxy2",  "hxy2",  100, -1010 ,1010, 100, -1010, 1010);
+  TH2F * htrack2   = new TH2F("htrack2",   "ht2",   50, -100, 100, 50, -1000, 1000);
+  TH2F * htrack1   = new TH2F("htrack1",   "ht1",   100, -1000, 1000, 100, -1000, 1000);
+  TH2F * hpeaky   = new TH2F("hpeakxy",   "hxy",   100, -1000, 1000, 100, -1000, 1000);
+  TH2F * hpeaky2  = new TH2F("hpeakxy2",  "hxy2",   50, -100 ,  100, 50,  -100,  100);
+  TH2F * huv   = new TH2F("huv",   "huv",   100,   -0.12, 0.12  , 100,   -0.12, 0.12  );
+  TH2F * hrphi = new TH2F("hrphi", "hrphi",  90,    0, 180, 100, -0.2, 0.2);
+  TH1F * hphi  = new TH1F("hphi",  "hphi",   50,   -4, 4 );
+  TH1F * htheta  = new TH1F("htheta",  "htheta", 180,   0, 180 );
+
+  std::vector<XYZTVector> hits ;
+
+  double degree = TMath::Pi()/180.0;
+
+  for(int i_track = 0; i_track < Ntracks; i_track++){ // made tracks by combining events
+
+    t->GetEntry(i_event);
+    i_event++;
+    
+    for( auto thit : (*g4hits) ) {
+      hits.push_back( {thit->position.X(), thit->position.Y(), thit->position.Z(), 0.0} );
+      std::cout << thit->position.X() << " , " <<  thit->position.Y() << std::endl;
+      hxy->Fill(thit->position.X(), thit->position.Y());
+      hxz->Fill(thit->position.X(), thit->position.Z());
+      hyz->Fill(thit->position.Y(), thit->position.Z());
+      hxy2->Fill(thit->position.X(), thit->position.Y());
+    }
+
+    for( auto thit : (*g4hits2) ) {
+      hits.push_back( {thit->position.X(), thit->position.Y(), thit->position.Z(), 0.0} );
+      std::cout << thit->position.X() << " , " <<  thit->position.Y() << std::endl;
+      hxy->Fill(thit->position.X(), thit->position.Y());
+      hxz->Fill(thit->position.X(), thit->position.Z());
+      hyz->Fill(thit->position.Y(), thit->position.Z());
+      hxy2->Fill(thit->position.X(), thit->position.Y());
+    }
+  }
+  std::cout << "Created 'event' by combining " << Ntracks << " real events from file\n";
+  
+
+  /*for(int i_hit = 0; i_hit < 100; i_hit++){  // make test hits in straight line
+    double x_incr = 1;
+    double y_incr = 1;
+    double z_incr = 1;
+    hits.push_back( {x_incr*i_hit+10 , y_incr*i_hit, z_incr*i_hit , 0.0} );
+    std::cout << x_incr*i_hit << " , " <<  y_incr*i_hit << std::endl;
+    hxy->Fill(x_incr*i_hit+10, y_incr*i_hit);
+    hxz->Fill(x_incr*i_hit+10, z_incr*i_hit);
+    hyz->Fill(y_incr*i_hit, z_incr*i_hit);
+    hxy2->Fill(x_incr*i_hit+10, y_incr*i_hit);
+
+  }
+
+  double x_extra = 0.0;
+  double y_extra = 50.0;
+  double z_extra = 0.0;
+  
+  hits.push_back( {x_extra, y_extra, z_extra, 0.0} );
+  std::cout << x_extra << " , " <<  y_extra << std::endl;
+  hxy->Fill(x_extra, y_extra);
+  hxz->Fill(x_extra, z_extra);
+  hyz->Fill(y_extra, z_extra);
+  hxy2->Fill(x_extra, y_extra);*/
+
+  std::vector<std::tuple<XYZTVector,XYZTVector,XYZTVector>> master_hits ;
+  std::vector<XYZTVector> all_chits ;
+
+  for(const auto& fhit : hits){
+  //auto fhit = hits.at(0);
+    auto chits = ht->GetConformalCoordinates(fhit, hits);
+    all_chits.insert(all_chits.end(), chits.begin(), chits.end());
+    //std::transform(hits.begin(), hits.end(), chits.begin(), master_hits.end(),
+    //    [&](const auto& a, const auto& b){ return make_tuple(a,b,fhit);});
+    for(int ihit = 0; ihit < hits.size() ; ihit++){
+      master_hits.push_back(make_tuple(hits[ihit], chits[ihit], fhit));
+    }
+  }
+
+  /*  std::cout << " Master " << master_hits.size() << std::endl;
+  if(master_hits.size()>2500){
+    std::cout << "too many master hits " << std::endl;
+    return;
+  }
+*/
+
+  //for(auto ahit : all_chits) { // find lines in real space first, then conformal space
+  for(auto ahit : hits) {
+    //std::cout << ahit.X() << " , " <<  ahit.Y() << std::en1l;
+    huv->Fill( ahit.X(), ahit.Y() );
+    hphi->Fill(TMath::ATan(ahit.Y()/ahit.X()));
+    for(int i_theta = 0; i_theta<180; i_theta++) {
+      double theta = 2.0*double(i_theta)*degree;
+      hrphi->Fill(theta/degree, ahit.X()*TMath::Cos(theta) + ahit.Y()*TMath::Sin(theta) );
+    }
+  }
+  //auto mg = ht->FillHoughTransforms(all_chits);
+
+  auto mg = ht->FillHoughTransforms(hits);
+
+  std::cout << " n peaks : " << ht->FindPeaks(hits) << std::endl;
+
+  //std::cout << " n peaks : " << ht->FindPeaks(all_chits) << std::endl;
+
+  auto pretrack_hits = ht->GetPreTrackHits(master_hits,4.0);
+
+
+  std::vector<TH1F*> hists;
+  std::vector<TH1F*> alltrack;
+  std::vector<TH1F*> vertextrack;
+  for( auto atrack : pretrack_hits ) {
+    TH1F* singletrack = (TH1F*)htrack1->Clone();
+    singletrack->Reset();
+    singletrack->SetLineColor(2+hists.size());
+    TH1F* singlevertextrack = (TH1F*)htrack2->Clone();
+    singlevertextrack->Reset();
+    singlevertextrack->SetLineColor(2+hists.size());
+    TH1F* fPhi2 = (TH1F*)ht->fPhi->Clone();
+    fPhi2->Reset();
+    fPhi2->SetLineColor(2+hists.size());
+    for( auto thit : atrack ) {
+      singletrack->Fill( std::get<0>(thit).X(), std::get<0>(thit).Y());
+      singlevertextrack->Fill( std::get<0>(thit).X(), std::get<0>(thit).Y());
+      hpeaky->Fill( std::get<0>(thit).X(), std::get<0>(thit).Y());
+      hpeaky2->Fill(std::get<0>(thit).X(), std::get<0>(thit).Y());
+      fPhi2->Fill(TMath::ATan(std::get<1>(thit).Y()/std::get<1>(thit).X())/degree);
+    }
+    hists.push_back(fPhi2);
+    alltrack.push_back(singletrack);
+    vertextrack.push_back(singlevertextrack);
+  }
+//  auto trackone = pretrack_hits.at(0);
+//  for( auto thit : trackone ) {
+//    htrack1->Fill( std::get<0>(thit).X(), std::get<0>(thit).Y());
+//  }
+//  auto tracktwo = pretrack_hits.at(1);
+//  for( auto thit : tracktwo ) {
+//    htrack2->Fill( std::get<0>(thit).X(), std::get<0>(thit).Y());
+//  }
+
+
+
+  for(auto t: ht->fHTRoots) {
+    htheta->Fill(std::get<2>(t));
+  }
+
+  TCanvas * c = new TCanvas();
+  ht->fIntersect->Draw();
+
+  c = new TCanvas();
+  ht->fIntReduced->Draw();
+
+  c = new TCanvas();
+  ht->fIntLeft->Draw();
+  c = new TCanvas();
+  c->Divide(2,2);
+  c->cd(1);
+  hxy2->Draw("box");
+  //for(auto ahist : alltrack){
+  //  ahist->Draw("box,same");
+  //}
+  //htrack1->SetLineColor(2);
+  //htrack1->Draw("box,same");
+  //htrack2->SetLineColor(3);
+  //htrack2->Draw("box,same");
+  //hpeaky->Draw("box,same");
+  c->cd(2);
+  huv->Draw("box");
+  c->cd(3);
+  hrphi->Draw("");
+  /*hxy2->Draw("box");
+  for(auto ahist : vertextrack){
+    ahist->Draw("box,same");
+  }*/
+  //hpeaky2->SetLineColor(2);
+  //hpeaky2->Draw("box,same");
+  c->cd(4);
+  hphi->Draw();
+  //hrphi->Draw("lego2");
+
+  c = new TCanvas();
+  c->Divide(2,2);
+  int counter = 1;
+  for( auto ahist : alltrack ){
+    c->cd(counter);
+    ahist->Draw("box");
+    counter++;
+    if( counter > 4) {break;}
+  }
+
+  c = new TCanvas();
+  c->Divide(2,2);
+  c->cd(1);
+  hxy->Draw("box");
+  c->cd(2);
+  hxz->Draw("box");
+  c->cd(3);
+  hyz->Draw("box");
+  
+
+  c = new TCanvas();
+  c->Divide(2,2);
+  c->cd(1);
+  ht->fPhi->Draw();
+  for(auto ahist : hists){
+  ahist->Draw("same");
+  }
+  //ht->fRhoTheta0->Draw("colz");
+  c->cd(2);
+  htheta->Draw();
+
+  c->cd(3);
+  mg->Draw("a");
+  std::cout << "multigraph list is " << mg->GetListOfGraphs()->GetSize() << endl;
+  std::cout << mg->GetListOfGraphs() << endl;
+  std::cout << mg->GetListOfFunctions() << endl;
+  c->cd(4);
+  mg->GetYaxis()->SetRangeUser(-50,50);
+  mg->Draw("a");
+
+  c = new TCanvas();
+  c->Divide(2,2);
+  c->cd(1);
+  ht->fRhoTheta0->SetLineColor(2);
+  ht->fRhoTheta0->Draw("colz");
+  c->cd(2);
+  ht->fRhoTheta1->Draw("colz");
+  c->cd(3);
+  ht->fRhoTheta2->Draw("colz");
+
+  std::cout << "find intersections " << ht->FindIntersections(mg) << endl;
+}

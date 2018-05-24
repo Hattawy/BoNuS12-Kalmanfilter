@@ -1,0 +1,421 @@
+#include "HoughTransform.h"
+#include "TMath.h"
+#include "Math/WrappedTF1.h"
+#include "Math/BrentRootFinder.h"
+#include <algorithm>
+#include "TRandom3.h"
+
+#include "TF1.h"
+#include "Math/WrappedTF1.h"
+#include "Math/BrentRootFinder.h"
+#include "TGraph.h"
+#include "TList.h"
+#include "TObject.h"
+
+namespace genfind {
+
+  HoughTransform::HoughTransform()
+  {
+    bool status = TH1::AddDirectoryStatus();
+    TH1::AddDirectory(false);
+    fPhi       = new TH1F{"hPhi","hPhi",90,-90, 90};
+    fRhoTheta0 = new TH2F{"hRhoTheta0","hRhoTheta0",100,-1010, 1010, 100,-1010,1010};
+    fRhoTheta1 = new TH2F{"hRhoTheta1","hRhoTheta1",90, 0, 180, 100,-0.1,0.1};
+    fRhoTheta2 = new TH2F{"hRhoTheta2","hRhoTheta2",40, 0, 180, 10,-0.1,0.1};
+    fIntersect = new TH2F{"hIntersect","hIntersect",90,0, 180, 75,-150,150 };
+    fIntReduced= new TH2F{"hIntReduced","hIntReduced",90,0, 180, 75,-150,150 };
+    fIntLeft   = new TH2F{"hIntLeft","hIntLeft",90,0, 180, 75,-150,150 };
+    fSpec  = new TSpectrum2(2*fMaxTracks);
+    fSpec1 = new TSpectrum(2*fMaxTracks);
+    TH1::AddDirectory(status);
+  }
+  //__________________________________________________________________________
+
+  HoughTransform::~HoughTransform()
+  {
+    delete fPhi;
+    delete fRhoTheta0;
+    delete fRhoTheta1;
+    delete fRhoTheta2;
+    delete fIntersect;
+    if(fSpec) delete fSpec; fSpec = nullptr;
+    if(fSpec1) delete fSpec1; fSpec1 = nullptr;
+  }
+  //__________________________________________________________________________
+
+  std::vector<ROOT::Math::XYZTVector> HoughTransform::GetConformalCoordinates(
+      const ROOT::Math::XYZTVector ref_point,
+      const std::vector<ROOT::Math::XYZTVector>& hits) const
+  {
+    std::vector<ROOT::Math::XYZTVector> res;
+    std::for_each(hits.begin(), hits.end(), [&](const auto& ahit) {
+        double x = ahit.X() - ref_point.X();
+        double y = ahit.Y() - ref_point.Y();
+        double R = x*x + y*y;
+        if( !(ahit == ref_point) ) {
+          res.push_back(ROOT::Math::XYZTVector{ 2.0*x/R, -2.0*y/R, ahit.Z(), ahit.T() });
+        }
+        });
+    return res;
+  }
+  //__________________________________________________________________________
+
+  TMultiGraph* HoughTransform::FillHoughTransforms(const std::vector<ROOT::Math::XYZTVector>& hits)
+  {
+    double degree = TMath::Pi()/180.0;
+    double phi_min = 0.0;
+    double phi_max = 180.0;
+    TMultiGraph* mg = new TMultiGraph();
+    //std::vector<TF1*> funcs;
+    double avg = 0;
+
+    
+    for(const auto& ahit : hits) {
+      TF1 * f = new TF1("f",[&](double*x, double *p){ return p[0]*TMath::Cos(x[0]*degree) + p[1]*TMath::Sin(x[0]*degree); }, phi_min, phi_max, 2);
+      f->SetLineColor(1);
+      f->SetLineWidth(1);
+      f->SetParameter(0, ahit.X());
+      f->SetParameter(1, ahit.Y());
+      fFuncs.push_back(f);
+      mg->Add(new TGraph(f),"l");
+
+    }
+    return mg;
+    //fFuncs as member changes in ways I don't understand.
+    //Not constant, can't be trusted in other class methods.
+  }
+//_______________________________________________________________________________
+
+  std::vector<TF1*> HoughTransform::FillFunctions(const std::vector<ROOT::Math::XYZTVector>& hits)
+  {
+    double degree = TMath::Pi()/180.0;
+    double phi_min = 0.0;
+    double phi_max = 180.0;
+    std::vector<TF1*> funcs;
+    double avg = 0;
+
+    
+    for(const auto& ahit : hits) {
+      TF1 * f = new TF1("f",[&](double*x, double *p){ return p[0]*TMath::Cos(x[0]*degree) + p[1]*TMath::Sin(x[0]*degree); }, phi_min, phi_max, 2);
+      f->SetParameter(0, ahit.X());
+      f->SetParameter(1, ahit.Y());
+      funcs.push_back(f);
+    }
+    return funcs;
+
+    // for some reason, the returned vector from this is not constant. 
+    // Changes in ways I don't understand.
+  }
+//______________________________________________________________________________
+//_
+
+
+  std::vector<std::tuple<int,int,double,double>> HoughTransform::FindIntersections( const std::vector<ROOT::Math::XYZTVector>& hits ) {
+    // this function finds the crossings for every pair of hit-functions.
+    // These are only kept in the list if a third hit-function passes very near.
+    double degree = TMath::Pi()/180.0;
+    double phi_min = 0.0;
+    double phi_max = 180.0;
+    std::vector<TF1*> funcs;
+    std::vector<std::tuple<int,int,double,double>> Intersections;
+
+    for(const auto& ahit : hits) {
+      TF1 * f = new TF1("f",[&](double*x, double *p){ return p[0]*TMath::Cos(x[0]*degree) + p[1]*TMath::Sin(x[0]*degree); }, phi_min, phi_max, 2);
+      f->SetParameter(0, ahit.X());
+      f->SetParameter(1, ahit.Y());
+      funcs.push_back(f);
+    }
+ 
+
+    int n_roots = 0;
+    int n_funcs = funcs.size();
+    for(int i_func = 0; i_func < n_funcs; i_func++) {
+      for(int j_func = i_func+1; j_func < n_funcs; j_func++) {
+        auto f1 = funcs[i_func];
+        auto f2 = funcs[j_func];
+        TF1 * fdiff = new TF1("fdiff",[&](double*x, double *p){
+            double val1 = f1->Eval(x[0]);
+            double val2 = f2->Eval(x[0]);
+            double dif = val1-val2;
+            //std::cout << " v1 - v2 = " << val1 << " - " << val2 << " = " <<  dif << std::endl;
+            return dif;
+            }, phi_min, phi_max, 0);
+        ROOT::Math::WrappedTF1 wf1(*fdiff);
+        ROOT::Math::BrentRootFinder brf;
+        brf.SetFunction( wf1, phi_min, phi_max);
+        brf.Solve();
+        double root = brf.Root();
+        fHTRoots.push_back( std::make_tuple(i_func, j_func, root) );
+        //avg += root;
+        n_roots++;
+
+        double rhoroot = f1->Eval(root);
+
+        //For better effect, make sure that there is a triple coincidence
+        //only fill fIntersect in the case of at least 3 nearly linear points
+        fThresh = 3;        
+        for(int k_func = 0; k_func < n_funcs; k_func++) {
+          if (k_func==i_func || k_func==j_func){continue;}
+          auto f3 = funcs[k_func];
+          double checkval = f3->Eval(root);
+          if (abs(checkval-rhoroot)<fThresh) {
+            fIntersect->Fill(root,rhoroot);
+            //std::cout << "filled Intersect! " << std::endl;
+            fHTIntersections.push_back( std::make_tuple(i_func, j_func, root, rhoroot) );
+            Intersections.push_back( std::make_tuple(i_func, j_func, root, rhoroot) );
+            //std::cout << "root (theta) is at " << root << " rhoval " << rhoroot << std::endl;
+            break;
+          }
+        }
+      }
+    }
+    return Intersections;
+  }
+
+//_______________________________________________________________________________
+//
+
+  int HoughTransform::GetReferenceHit( const std::vector<ROOT::Math::XYZTVector>& hits, std::vector<std::tuple<int,int,double,double>> Intersections )  {
+    double degree = TMath::Pi()/180.0;
+    double phi_min = 0.0;
+    double phi_max = 180.0;
+    std::vector<TF1*> funcs;
+    
+    for(const auto& ahit : hits) {
+      TF1 * f = new TF1("f",[&](double*x, double *p){ return p[0]*TMath::Cos(x[0]*degree) + p[1]*TMath::Sin(x[0]*degree); }, phi_min, phi_max, 2);
+      f->SetParameter(0, ahit.X());
+      f->SetParameter(1, ahit.Y());
+      funcs.push_back(f);
+    }
+    // This function selects one reference hit,
+    // This hit is in the bin with the most intersections
+    // To allow multiple tracks to be found, make this callable with 
+    // fIntersect as a variable. Or maybe the fHTIntersections tuple variable.
+    int n_funcs = funcs.size();
+
+    TH2F* hist_intersect = new TH2F{"hist_intersect","hist_intersect",90,0, 180, 75,-150,150 };
+    
+    for(auto t : Intersections ){
+      hist_intersect->Fill(std::get<2>(t),std::get<3>(t));
+    }
+
+    double max = hist_intersect->GetMaximumBin();
+    double value = hist_intersect->GetBinContent(max);
+
+    Int_t binx,biny,binz;
+ 
+    hist_intersect->GetBinXYZ(max, binx, biny, binz); 
+    double xmaxbin = hist_intersect->GetXaxis()->GetBinCenter(binx);
+    double ymaxbin = hist_intersect->GetYaxis()->GetBinCenter(biny);
+
+    std::cout << "binx " << xmaxbin << "biny " << ymaxbin << std::endl;
+ 
+    //find one hit with function that goes close enough to the maximum bin (
+    int min = abs(funcs[0]->Eval(xmaxbin)-ymaxbin);
+    int index = -1;
+    for(int i = 0; i < n_funcs; i++) {
+      auto f1 = funcs[i];
+      double val = f1->Eval(xmaxbin);
+      double dif = ymaxbin-val;
+      std::cout << "dif is " << dif << std::endl;
+  
+      if (abs(dif) < min) {
+        min = abs(dif);
+        index = i;        
+      }
+    }
+    return index;
+  }
+
+//_____________________________________________________________________________
+//
+
+  std::vector< int > HoughTransform::FindTrack( const std::vector<ROOT::Math::XYZTVector>& hits, std::vector<std::tuple<int,int,double,double>> Intersections, int ref ) {
+    double degree = TMath::Pi()/180.0;
+    double phi_min = 0.0;
+    double phi_max = 180.0;
+    std::vector<TF1*> funcs;
+    
+    for(const auto& ahit : hits) {
+      TF1 * f = new TF1("f",[&](double*x, double *p){ return p[0]*TMath::Cos(x[0]*degree) + p[1]*TMath::Sin(x[0]*degree); }, phi_min, phi_max, 2);
+      f->SetParameter(0, ahit.X());
+      f->SetParameter(1, ahit.Y());
+      funcs.push_back(f);
+    }
+ 
+    int n_funcs = funcs.size();
+    //use Intersections to find candidate tracks.
+    std::vector<std::tuple<int,int,double,double>> fHTIntReduced;
+    std::vector<std::tuple<int,int,double,double>> fHTCandidate;
+    std::cout << "reference " << ref << std::endl;
+    for(auto t:Intersections) {
+      int index1 = std::get<0>(t);
+      int index2 = std::get<1>(t);
+      //std::cout << "index 1 " << index1 << " and 2 " << index2 << std::endl;
+      if( (index1 != ref) && (index2 != ref)  ){
+        // neither index matches the candidate hit, enter this into the fHTIntReduced;
+        // I don't want to fill it at this point, because I haven't selected the densest point for this hit
+        // Need to remove from this listing ALL points corresponding to the max grouping for this hit
+        // THEN the remainder is ready for continued searching
+        //std::cout << "filling reduced with " << std::get<2>(t) << " " << std::get<3>(t) << std::endl; 
+        fHTIntReduced.push_back(t);
+        //fIntReduced->Fill(std::get<2>(t),std::get<3>(t));
+      } else {
+        // one of the indexes matches the candidate hit-- fill fHTCandidate
+        fHTCandidate.push_back(t); 
+        fIntReduced->Fill(std::get<2>(t),std::get<3>(t));
+        std::cout << "filling candidate with " << std::get<2>(t) << " " << std::get<3>(t) << std::endl; 
+      }
+    }
+    int reducedmaxbin = fIntReduced->GetMaximumBin(); 
+    Int_t binxR;
+    Int_t binyR;
+    Int_t binzR;
+    fIntReduced->GetBinXYZ(reducedmaxbin, binxR, binyR, binzR);
+    double xmaxbinR = fIntersect->GetXaxis()->GetBinCenter(binxR);
+    double ymaxbinR = fIntersect->GetYaxis()->GetBinCenter(binyR);
+    std::cout << "binxR " << xmaxbinR << "binyR " << ymaxbinR << std::endl;
+    // use the fIntReduced, which now holds candidate points,
+    // find all points within a fairly relaxed threshold around max bin
+    // Accumulate list of all the hits that make up this group
+    // Then make the fHTIntReduced vector/tuple of the remaining hits.
+    fThresh = 15;
+    std::vector< int > trackhitlist; 
+    for(int i_func = 0; i_func < n_funcs; i_func++) {
+      auto f1 = funcs[i_func];
+      double val = f1->Eval(7); //xmaxbinR);
+         // first time, the above line outputs sensible. Every subsequent loop,
+         // outputs fucking insanity.
+      double dif = ymaxbinR-val;
+      std::cout << "index: " << i_func << " dif is " << dif << std::endl;
+      if (abs(dif) < fThresh) {
+        // include this hit in the pretrack for most likely track 
+        // 
+        trackhitlist.push_back(i_func);
+        std::cout << "filling trackhitlist with " << i_func << std::endl;
+      }
+    }
+    return trackhitlist;
+  } 
+
+
+  //__________________________________________________________________________________
+  //
+  std::vector<std::tuple<int,int,double,double>> HoughTransform::ReduceIntersections( std::vector<std::tuple<int,int,double,double>> Intersections,  std::vector< int >  trackhitlist  ) { 
+
+    std::vector<std::tuple<int,int,double,double>> ReducedInt; 
+    for(auto t:Intersections) {
+      int index1 = std::get<0>(t);
+      int index2 = std::get<1>(t);
+      //std::cout << "index " << index1 << " and " << index2 << std::endl;
+      int addflag = 1;
+      for( int i = 0; i<trackhitlist.size(); i++ ) {
+         if ( (index1 == trackhitlist[i]) || (index2 == trackhitlist[i]) ){
+           addflag = 0;
+           //std::cout << trackhitlist[i] << std::endl;
+         }
+      }
+      if ( addflag ==1 ) {
+        fIntLeft->Fill(std::get<2>(t),std::get<3>(t));
+        ReducedInt.push_back(t);
+        //std::cout << "filling tuple " << std::endl;  
+      }
+    } 
+    return ReducedInt;
+  }  
+  // this one, in order to recursively find all tracks, needs to output a list
+  // of hits, or a reduced fHTIntersections, or something like that,
+  // and then call GetReferenceHit,
+  // And then call FindTrack, then, reduce intersections again.
+  // So, this should also have a variable fHTIntersections, so that for every call
+  // can specify this list getting shorter.
+     
+  
+  
+  //__________________________________________________________________________
+  //
+  //should return vector of vector of tuple of int and vector of xyztvectors
+  //should continue calling until all tracks are found.
+  int HoughTransform::FindTracks( const std::vector<ROOT::Math::XYZTVector>& hits ){
+     int num_tracks = 0;
+     int max_tracks = 10;
+
+
+     std::vector<std::tuple<int,int,double,double>> fi = this->FindIntersections(hits);
+ 
+     if(fi.size()>0){
+        do{
+        int gr = this->GetReferenceHit(hits,fi);
+        std::vector< int > trackhitlist = this->FindTrack( hits, fi, gr ); 
+                      // this should also take the intersections in findtrack,
+                      // so that this can be iterated and reduced. 
+                      // Probably findtrack should itself call getreferencehit
+                      // as this will ensure that the hit used as reference
+                      // is actually inside the list of intersections somewhere.
+        num_tracks++;
+        fi = this->ReduceIntersections( fi, trackhitlist );
+        } while (fi.size()>0);
+     }
+     return num_tracks;
+  }
+  //__________________________________________________________________________
+  //
+  
+  int HoughTransform::FindPeaks(const std::vector<ROOT::Math::XYZTVector>& hits)
+  {
+    double degree = TMath::Pi()/180.0;
+    for(const auto& ahit : hits){
+      double phi  = TMath::ATan(ahit.Y()/ahit.X())/degree;
+      fPhi->Fill(phi);
+    }
+    int nfound = fSpec1->Search(fPhi,1,"col",0.2);
+    std::cout << "number found peaks is " << nfound << std::endl;
+    for(int n = 0; n < nfound; n++) {
+      double xphi = (fSpec1->GetPositionX())[n];
+      std::cout << "xphi is " << xphi << std::endl;
+      fPhiPeaks.push_back(xphi);
+    }
+
+    return nfound;
+  }
+  //__________________________________________________________________________
+  
+  std::vector<std::vector<std::tuple<ROOT::Math::XYZTVector,ROOT::Math::XYZTVector,ROOT::Math::XYZTVector>>> HoughTransform::GetPreTrackHits(
+      const std::vector<std::tuple<ROOT::Math::XYZTVector,ROOT::Math::XYZTVector,ROOT::Math::XYZTVector>>& hits,
+      double dphi )
+  {
+
+    // note, this function is NOT apparently very consistent
+    // even running the same input twice does not guarantee the same result.
+    // Peak 1 has 16hits and Peak 1 has 1hits can come from same set of points.
+    //
+    // copy the hits 
+    auto the_hits = hits;
+    std::cout <<  " " << the_hits.size() << " hits start\n" ;
+    std::vector<std::vector<std::tuple<ROOT::Math::XYZTVector,ROOT::Math::XYZTVector,ROOT::Math::XYZTVector>>> res;
+    double degree = TMath::Pi()/180.0;
+    for(auto& peak : fPhiPeaks){
+      std::vector<std::tuple<ROOT::Math::XYZTVector,ROOT::Math::XYZTVector,ROOT::Math::XYZTVector>> peak_hits;
+      the_hits.erase(
+          std::remove_if(the_hits.begin(), the_hits.end(), [&](const auto& h){
+            double phi  = TMath::ATan(std::get<1>(h).Y()/std::get<1>(h).X())/degree;
+            if( TMath::Abs( peak-phi ) < dphi ) {
+            peak_hits.push_back( h );
+            //std::cout << " peak " << peak << ", " << "phi "  << phi << std::endl;
+            //std::cout << " dphi " << dphi << ", " << "TMath::Abs( peak-phi ) "  << TMath::Abs( peak-phi ) << std::endl;
+            return true;
+            } else {
+            return false;
+            }
+            }), the_hits.end());
+      res.push_back(peak_hits);
+      std::cout <<  " Peak " << res.size()  << " has " << peak_hits.size() << "hits\n";
+    }
+    //res.push_back(the_hits);
+    //std::cout <<  " " << the_hits.size() << " hits remain\n" ;
+    return  res;
+  }
+  //__________________________________________________________________________
+
+}
+
