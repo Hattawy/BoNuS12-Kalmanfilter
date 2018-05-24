@@ -1,0 +1,11 @@
+{ decls }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class genfit::HelixTrackModel
+class genfit::MeasurementCreator
+class genfit::mySpacepointDetectorHit
+class genfit::mySpacepointMeasurement
+# List of selected namespaces
+namespace genfit

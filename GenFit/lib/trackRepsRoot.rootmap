@@ -1,0 +1,8 @@
+{ decls }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class genfit::RKTrackRep
+# List of selected namespaces
+namespace genfit

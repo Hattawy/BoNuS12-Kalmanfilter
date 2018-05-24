@@ -1,0 +1,38 @@
+{ decls }
+namespace std {  }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class genfit::AbsFinitePlane
+class genfit::AbsFitterInfo
+class genfit::AbsHMatrix
+class genfit::AbsMeasurement
+class genfit::AbsTrackRep
+class genfit::DetPlane
+class genfit::FitStatus
+class genfit::MaterialProperties
+class genfit::MeasuredStateOnPlane
+class genfit::MeasurementOnPlane
+class genfit::PruneFlags
+class genfit::RectangularFinitePlane
+class genfit::StateOnPlane
+class genfit::ThinScatterer
+class genfit::Track
+class genfit::TrackCand
+class genfit::TrackCandHit
+class genfit::TrackPoint
+class vector<genfit::TrackPoint*>
+header AbsHMatrix.h
+header AbsTrackRep.h
+header DetPlane.h
+header FitStatus.h
+header MaterialProperties.h
+header MeasuredStateOnPlane.h
+header MeasurementOnPlane.h
+header StateOnPlane.h
+header TrackCand.h
+header TrackCandHit.h
+header TrackPoint.h
+# List of selected namespaces
+namespace genfit

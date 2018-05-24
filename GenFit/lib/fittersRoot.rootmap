@@ -1,0 +1,15 @@
+{ decls }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class genfit::AbsKalmanFitter
+class genfit::DAF
+class genfit::KalmanFitStatus
+class genfit::KalmanFittedStateOnPlane
+class genfit::KalmanFitter
+class genfit::KalmanFitterInfo
+class genfit::KalmanFitterRefTrack
+class genfit::ReferenceStateOnPlane
+# List of selected namespaces
+namespace genfit

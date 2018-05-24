@@ -1,0 +1,21 @@
+{ decls }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class genfit::FullMeasurement
+class genfit::HMatrixPhi
+class genfit::HMatrixU
+class genfit::HMatrixUV
+class genfit::HMatrixUnit
+class genfit::HMatrixV
+class genfit::PlanarMeasurement
+class genfit::ProlateSpacepointMeasurement
+class genfit::SpacepointMeasurement
+class genfit::WireMeasurement
+class genfit::WireMeasurementNew
+class genfit::WirePointMeasurement
+class genfit::WireTrackCandHit
+header SpacepointMeasurement.h
+# List of selected namespaces
+namespace genfit

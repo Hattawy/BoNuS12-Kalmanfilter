@@ -1,0 +1,22 @@
+{ decls }
+namespace std {  }
+namespace gbl {  }
+namespace genfit {  }
+
+[ libgenfit2.so ]
+# List of selected classes
+class gbl::GblData
+class genfit::GFGbl
+class genfit::GblFitStatus
+class genfit::GblFitter
+class genfit::GblFitterInfo
+class genfit::GblTrackSegmentController
+class genfit::ICalibrationParametersDerivatives
+class vector<gbl::GblData>
+header GblData.h
+header GblFitStatus.h
+header GblFitterInfo.h
+header GblTrackSegmentController.h
+header ICalibrationParametersDerivatives.h
+# List of selected namespaces
+namespace genfit
